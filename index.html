@@ -1042,6 +1042,26 @@
   // ── Helpers ───────────────────────────────────────────────
   function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+  // Convierte "15 de junio" o "15 de junio de 2026" a "2026-06-15"
+  function toISODate(str) {
+    if (!str) return '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str; // ya es ISO
+    var meses = {enero:1,febrero:2,marzo:3,abril:4,mayo:5,junio:6,
+                 julio:7,agosto:8,septiembre:9,octubre:10,noviembre:11,diciembre:12};
+    var m = str.toLowerCase().match(/(\d{1,2})\s+de\s+(\w+)(?:\s+(?:de\s+)?(\d{4}))?/);
+    if (!m) return '';
+    var dia = parseInt(m[1]);
+    var mes = meses[m[2]];
+    var anio = m[3] ? parseInt(m[3]) : new Date().getFullYear();
+    // Si el mes ya pasó, asumir año siguiente
+    if (!m[3]) {
+      var hoy = new Date();
+      if (mes < hoy.getMonth() + 1 || (mes === hoy.getMonth() + 1 && dia < hoy.getDate())) anio++;
+    }
+    if (!mes) return '';
+    return anio + '-' + String(mes).padStart(2,'0') + '-' + String(dia).padStart(2,'0');
+  }
+
   function getBotAvatarSrc() {
     const av = document.querySelector('#tga-header .avatar img');
     return av ? av.src : '';
@@ -1131,10 +1151,16 @@
   }
 
   // ── Enviar mensaje ─────────────────────────────────────────
+  // Detecta si el usuario quiere ser contactado
+  function userWantsContact(text) {
+    return /(?:s[ií]|yes|dale|ok|quiero|quer[eé]s|anot[aá]|contact[ae]n|ll[aá]menme|escr[ií]banme|manden|quiero que me contact)/i.test(text);
+  }
+
   async function sendMessage() {
     const text = input.value.trim();
     if (!text) return;
     input.value = '';
+    const wantsContact = userWantsContact(text);
     leadBtn.style.display = 'none';
     addUserMessage(text);
     showTyping();
@@ -1145,7 +1171,12 @@
       });
       const data = await res.json();
       hideTyping();
-      await streamBotResponse(data.output || data.text || data.message || 'Lo siento, hubo un error. Por favor intentá de nuevo.');
+      const botReply = data.output || data.text || data.message || 'Lo siento, hubo un error. Por favor intentá de nuevo.';
+      await streamBotResponse(botReply);
+      // Auto-abrir formulario si el usuario quería contacto y el bot lo confirmó
+      if (wantsContact && /equipo|contactar|contacto|pondr[aá]|comunicar/i.test(botReply)) {
+        setTimeout(() => openLeadForm(), 1200);
+      }
     } catch(e) {
       hideTyping();
       addBotMessage('Tuve un problema de conexión. Intentá en unos momentos o visitá travelguardianassist.com');
@@ -1175,8 +1206,8 @@
     }
 
     // Fechas
-    if (q.fecha_desde) $('tga-fecha-desde').value = q.fecha_desde;
-    if (q.fecha_hasta) $('tga-fecha-hasta').value = q.fecha_hasta;
+    if (q.fecha_desde) $('tga-fecha-desde').value = toISODate(q.fecha_desde);
+    if (q.fecha_hasta) $('tga-fecha-hasta').value = toISODate(q.fecha_hasta);
 
     // Viajeros y edades
     if (q.num_viajeros) $('tga-viajeros').value = q.num_viajeros;
