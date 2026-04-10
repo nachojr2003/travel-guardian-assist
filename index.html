@@ -987,33 +987,56 @@
 
   // ── Extraer datos de cotización del mensaje del bot ──────
   function extractQuoteFromMessage(text) {
-    // Plan: busca GUARDIAN xK o LONG STAY xK o GUARDIAN FLEX xK
-    const planMatch = text.match(/(?:GUARDIAN FLEX|LONG STAY|GUARDIAN SENIOR|GUARDIAN)\s+[\w]+K/i);
-    if (planMatch) {
-      lastQuoteData.plan_interes = planMatch[0].trim().toUpperCase();
-      sessionStorage.setItem('tga_quote', JSON.stringify(lastQuoteData));
+
+    // Plan: priorizar negrita o mencionado explícitamente
+    var planExplicit = text.match(/(?:el plan|te interesa|elegiste)[^\n]*\*\*((?:GUARDIAN FLEX|LONG STAY|GUARDIAN SENIOR|GUARDIAN)\s+\w+K)\*\*/i)
+                    || text.match(/\*\*((?:GUARDIAN FLEX|LONG STAY|GUARDIAN SENIOR|GUARDIAN)\s+\w+K)\*\*/i);
+    var planAny = text.match(/(?:GUARDIAN FLEX|LONG STAY|GUARDIAN SENIOR|GUARDIAN)\s+\w+K/i);
+    var planMatch = planExplicit || planAny;
+    if (planMatch) lastQuoteData.plan_interes = (planMatch[1] || planMatch[0]).trim().toUpperCase();
+
+    // Precio total
+    var priceEx = text.match(/precio total[^\d]*USD\s*([\d]+\.[\d]{2})/i)
+               || text.match(/total[^\n]*USD\s*([\d]+\.[\d]{2})/i);
+    if (priceEx) {
+      lastQuoteData.cotizacion_estimada = priceEx[1];
+    } else {
+      var allUsd = text.match(/USD\s*([\d]+\.[\d]{2})/g);
+      if (allUsd) lastQuoteData.cotizacion_estimada = allUsd[allUsd.length-1].replace(/USD\s*/,'');
     }
-    // Precio total: busca "USD XXX.XX" cerca de "total" o "Total"
-    const priceMatch = text.match(/(?:total|TOTAL)[^\d]*USD\s*([\d,]+\.?\d*)/i)
-                    || text.match(/USD\s*([\d,]+\.?\d*)\s*$/m);
-    if (priceMatch) {
-      lastQuoteData.cotizacion_estimada = priceMatch[1].replace(',','');
-      sessionStorage.setItem('tga_quote', JSON.stringify(lastQuoteData));
+
+    // Destino desde encabezado de cotización
+    var cotMatch = text.match(/Cotizaci[oó]n\s*[\u2014\-]\s*([^·\n,]+)/i);
+    if (cotMatch) lastQuoteData.destino = cotMatch[1].trim();
+
+    // Fechas: "del 15 al 30 de junio"
+    var rangoMatch = text.match(/del?\s+(\d{1,2})\s+al\s+(\d{1,2})\s+de\s+(\w+)/i);
+    if (rangoMatch) {
+      lastQuoteData.fecha_desde = rangoMatch[1] + ' de ' + rangoMatch[3];
+      lastQuoteData.fecha_hasta = rangoMatch[2] + ' de ' + rangoMatch[3];
+    } else {
+      var isoMatch = text.match(/(\d{4}-\d{2}-\d{2}).*?(\d{4}-\d{2}-\d{2})/);
+      if (isoMatch) { lastQuoteData.fecha_desde = isoMatch[1]; lastQuoteData.fecha_hasta = isoMatch[2]; }
     }
-    // Destino
-    const destMatch = text.match(/(?:destino|viaj[ae] a|Europa|Latinoam[eé]rica|Mundial|USA|Am[eé]rica|Asia|[A-Z][a-záéíóúñ]+(?:\s+[A-Z][a-záéíóúñ]+)?)\s*[·:·]?\s*([A-ZÁÉÍÓÚÑa-záéíóúñ\s]+?)(?:\s*[·
-,])/);
-    if (destMatch && destMatch[1]) {
-      lastQuoteData.destino = destMatch[1].trim();
-      sessionStorage.setItem('tga_quote', JSON.stringify(lastQuoteData));
+
+    // Viajeros
+    var viajerosMatch = text.match(/(\d+)\s+viajero/i);
+    if (viajerosMatch) lastQuoteData.num_viajeros = viajerosMatch[1];
+
+    // Edades
+    var edadesMatch = text.match(/t[uú]\s+de\s+(\d{2})[^.]*?(\d{2})\s+a[nñ]os/i)
+                   || text.match(/(\d{2})\s+y\s+(\d{2})\s+a[nñ]os/i);
+    if (edadesMatch) lastQuoteData.edades_pasajeros = edadesMatch[1] + ', ' + edadesMatch[2];
+    else {
+      var edadSola = text.match(/(\d{2})\s+a[nñ]os/i);
+      if (edadSola) lastQuoteData.edades_pasajeros = edadSola[1];
     }
-    // Destino directo de tabla (ej: "Cotización — Europa · 20 días")
-    const cotMatch = text.match(/Cotizaci[oó]n\s*[—-]\s*([^·
-]+)/i);
-    if (cotMatch) {
-      lastQuoteData.destino = cotMatch[1].trim();
-      sessionStorage.setItem('tga_quote', JSON.stringify(lastQuoteData));
-    }
+
+    // Nombre
+    var nombreMatch = text.match(/[Hh]ola,?\s+([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)!/);
+    if (nombreMatch && nombreMatch[1] !== 'Gracias') lastQuoteData.nombre = nombreMatch[1];
+
+    sessionStorage.setItem('tga_quote', JSON.stringify(lastQuoteData));
   }
 
   // ── Helpers ───────────────────────────────────────────────
