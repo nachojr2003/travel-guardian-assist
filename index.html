@@ -608,7 +608,7 @@
     overflow: hidden; transition: transform .2s, box-shadow .2s;
   }
   #tga-btn:hover { transform: scale(1.07); box-shadow: 0 6px 24px rgba(0,0,98,.45); }
-  #tga-btn img { width: 60px; height: 60px; object-fit: cover; border-radius: 50%; }
+  #tga-btn img { width: 60px; height: 60px; object-fit: contain; border-radius: 50%; background: #fff; padding: 6px; box-sizing: border-box; }
 
   #tga-window {
     display: none; position: fixed; bottom: 96px; right: 24px;
@@ -625,7 +625,7 @@
     display: flex; align-items: center; gap: 10px; flex-shrink: 0;
   }
   #tga-header .avatar { width: 36px; height: 36px; border-radius: 50%; overflow: hidden; flex-shrink: 0; }
-  #tga-header .avatar img { width: 36px; height: 36px; object-fit: cover; }
+  #tga-header .avatar img { width: 36px; height: 36px; object-fit: contain; background: #fff; border-radius: 50%; }
   #tga-header .info { flex: 1; }
   #tga-header .name { font-size: 14px; font-weight: 600; }
   #tga-header .status { font-size: 11px; opacity: .75; }
@@ -643,7 +643,7 @@
     align-self: flex-start; display: flex; gap: 8px; align-items: flex-start; max-width: 92%;
   }
   .tga-msg.bot .bot-av { width: 24px; height: 24px; border-radius: 50%; overflow: hidden; flex-shrink: 0; }
-  .tga-msg.bot .bot-av img { width: 24px; height: 24px; object-fit: cover; }
+  .tga-msg.bot .bot-av img { width: 24px; height: 24px; object-fit: contain; background: #fff; }
   .tga-msg.bot .bot-text { flex: 1; }
   .tga-msg.bot .bot-text strong { font-weight: 600; }
   .tga-msg.bot .bot-text em { font-style: italic; }
@@ -883,7 +883,7 @@
     </button>
   </div>
 
-  <div id="tga-footer">Powered by <a href="https://ijv.digital" target="_blank">IJV</a></div>
+  <div id="tga-footer">Powered by <a href="https://ijvagency.com/" target="_blank">IJV</a></div>
 </div>
 
 <script>
